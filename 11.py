@@ -21,7 +21,7 @@ def save_to_json(data):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 def load_settings():
-    # 預設數據：嚴格對照淑英姐截圖
+    # 嚴格依照淑英姐黑底截圖數據
     default_data = {
         "etfs": [
             {"symbol": "0050.TW", "name": "元大台灣50", "shares": 8486, "cost": 37.22, "manual_pnl": 445608},
@@ -35,6 +35,7 @@ def load_settings():
         try:
             with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+                # 強制清除任何舊有的 RAY 相關數據
                 if any(item['symbol'] == "00927.TW" for item in data['etfs']):
                     return default_data
                 return data
@@ -145,11 +146,11 @@ def fetch_analysis(etf_list):
             res.append({
                 "狀態": status_light,
                 "代號名稱": f"{item['symbol'].split('.')[0]} {item['name']}", 
-                "買入均價": f"${item['cost']:.2f}",
+                "買入均價": f"台幣 {item['cost']:.2f}",
                 "現價": round(curr_p, 2), 
                 "今日漲跌": day_chg, 
                 "累積損益": item['manual_pnl'], 
-                "配息金額": f"${cfg['v']:.2f}",
+                "配息金額": f"台幣 {cfg['v']:.2f}",
                 "填息進度": recovery_str,
                 "除息預計": cfg["d"]
             })
@@ -202,8 +203,8 @@ with tc2: render_custom_card(tw_data[1]); render_custom_card(tw_data[3])
 st.divider()
 p_col, d_col = ("#ef4444" if g_pnl >= 0 else "#22c55e"), ("#ef4444" if g_day_change >= 0 else "#22c55e")
 mc1, mc2 = st.columns(2)
-with mc1: st.markdown(f"<div style='text-align:center; background-color:#f8fafc; padding:10px; border-radius:10px;'>今日損益<h2 style='color:{d_col}; margin:0;'>${g_day_change:+,.0f}</h2></div>", unsafe_allow_html=True)
-with mc2: st.markdown(f"<div style='text-align:center; background-color:#f8fafc; padding:10px; border-radius:10px;'>累積總損益<h2 style='color:{p_col}; margin:0;'>${g_pnl:,.0f}</h2></div>", unsafe_allow_html=True)
+with mc1: st.markdown(f"<div style='text-align:center; background-color:#f8fafc; padding:10px; border-radius:10px;'>今日損益<h2 style='color:{d_col}; margin:0;'>台幣 {g_day_change:+,.0f} 元</h2></div>", unsafe_allow_html=True)
+with mc2: st.markdown(f"<div style='text-align:center; background-color:#f8fafc; padding:10px; border-radius:10px;'>累積總損益<h2 style='color:{p_col}; margin:0;'>台幣 {g_pnl:,.0f} 元</h2></div>", unsafe_allow_html=True)
 
 if not df.empty:
     st.dataframe(df.style.format({"現價":"{:.2f}","今日漲跌":"{:+,.0f}","累積損益":"{:,.0f}"}).map(lambda x: f'color:{"red" if (isinstance(x, (int,float)) and x>0) or str(x).startswith("+") else "green" if (isinstance(x, (int,float)) and x<0) or str(x).startswith("-") else "black"};font-weight:bold;', subset=['累積損益', '今日漲跌']), use_container_width=True, hide_index=True)
@@ -216,26 +217,26 @@ chart_df = pd.DataFrame({"月份": month_order, "領息金額": monthly_totals})
 
 chart = alt.Chart(chart_df).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
     x=alt.X("月份:N", sort=month_order, axis=alt.Axis(labelAngle=0)),
-    y=alt.Y("領息金額:Q", title="金額 ($)"),
+    y=alt.Y("領息金額:Q", title="金額 (台幣)"),
     tooltip=[] 
 ).properties(height=350)
 
 st.altair_chart(chart, use_container_width=True)
 
-# --- 新增的領息明細區塊 ---
+# --- 領息明細區塊 (單位改為台幣) ---
 st.markdown("#### 🔍 每月領息明細")
 detail_rows = []
 for m in month_order:
     if g_months[m]["detail"]:
         for d in g_months[m]["detail"]:
-            detail_rows.append({"月份": m, "股票來源": d["股票"], "預估領息金額": f"${d['金額']:,}"})
+            detail_rows.append({"月份": m, "股票來源": d["股票"], "預估領息金額": f"台幣 {d['金額']:,} 元"})
 
 if detail_rows:
     st.table(pd.DataFrame(detail_rows))
 else:
     st.write("目前尚無領息數據。")
 
-st.metric("預估年領總息", f"${g_annual:,.0f}")
+st.metric("預估年領總息", f"台幣 {g_annual:,.0f} 元")
 
 with st.expander("🛠 資產管理"):
     updated_list = []
@@ -246,6 +247,6 @@ with st.expander("🛠 資產管理"):
         with c3: c = st.number_input(f"成本", value=float(item['cost']), key=f"c_{i}")
         with c4: p = st.number_input(f"損益修正", value=int(item['manual_pnl']), key=f"p_{i}")
         updated_list.append({"symbol": item['symbol'], "name": item['name'], "shares": s, "cost": c, "manual_pnl": p})
-    if st.button("💾 儲存所有變更", type="primary"):
+    if st.button("💾 儲存並修正為淑英姐數據", type="primary"):
         st.session_state.my_data['etfs'] = updated_list
         save_to_json(st.session_state.my_data); st.cache_data.clear(); st.rerun()

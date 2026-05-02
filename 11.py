@@ -21,7 +21,7 @@ def save_to_json(data):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 def load_settings():
-    # 嚴格依照淑英姐截圖數據，0050 配息下修至較準確的 1.0 (可手動於資產管理修正)
+    # 預設數據依照淑英姐截圖提供
     default_data = {
         "etfs": [
             {"symbol": "0050.TW", "name": "元大台灣50", "shares": 8486, "cost": 37.22, "manual_pnl": 445608},
@@ -34,8 +34,7 @@ def load_settings():
     if os.path.exists(SETTINGS_FILE):
         try:
             with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data
+                return json.load(f)
         except: return default_data
     return default_data
 
@@ -104,7 +103,8 @@ def fetch_analysis(etf_list):
     res, t_mkt, t_pnl, t_cost, t_day_change, annual_total = [], 0, 0, 0, 0, 0
     m_stats = {f"{m}月": {"total": 0, "detail": []} for m in range(1, 13)}
     reminders, today = [], datetime.now()
-    # 修正 0050 配息估算值 (改為參考近期水準 1.0)
+    
+    # 預設配息規則 (若新股票不在這裡，預設配息為 0)
     div_cfg = {
         "0050.TW": {"m": [1, 7], "d": "2026-07-16", "v": 1.00}, 
         "0056.TW": {"m": [1, 4, 7, 10], "d": "2026-04-21", "v": 1.00}, 
@@ -112,6 +112,7 @@ def fetch_analysis(etf_list):
         "00903.TW": {"m": [2, 8], "d": "2026-08-15", "v": 0.15},
         "00940.TW": {"m": [1,2,3,4,5,6,7,8,9,10,11,12], "d": "2026-05-08", "v": 0.05}
     }
+    
     for item in etf_list:
         try:
             tk = yf.Ticker(item['symbol'])
@@ -121,11 +122,14 @@ def fetch_analysis(etf_list):
             else:
                 curr_p = tk.fast_info.get('lastPrice', item['cost'])
                 prev_p = tk.fast_info.get('regularMarketPreviousClose', curr_p)
+            
             day_chg = (curr_p - prev_p) * item['shares']
             cfg = div_cfg.get(item['symbol'], {"m": [], "d": "無", "v": 0.0})
+            
             status_light = "🔵"
             if day_chg > 0: status_light = "🔴"
             elif day_chg < 0: status_light = "🟢"
+            
             recovery_str = "—"
             if cfg['v'] > 0:
                 if curr_p >= item['cost']: recovery_str = f"✅ 已填息"
@@ -133,14 +137,21 @@ def fetch_analysis(etf_list):
                     gap = item['cost'] - curr_p
                     if gap < cfg['v']: recovery_str = f"⏳ 填息 {max(0, (1-(gap/cfg['v']))*100):.0f}%"
                     else: recovery_str = "貼息中"
-            if cfg["d"] != "無" and 0 <= (datetime.strptime(cfg["d"], "%Y-%m-%d") - today).days <= 25:
-                reminders.append({"code": item['symbol'].split('.')[0], "date": datetime.strptime(cfg["d"], "%Y-%m-%d").strftime("%m/%d")})
+            
+            if cfg["d"] != "無":
+                try:
+                    if 0 <= (datetime.strptime(cfg["d"], "%Y-%m-%d") - today).days <= 25:
+                        reminders.append({"code": item['symbol'].split('.')[0], "date": datetime.strptime(cfg["d"], "%Y-%m-%d").strftime("%m/%d")})
+                except: pass
+            
             cash = cfg['v'] * item['shares']
             for m in cfg["m"]:
                 m_stats[f"{m}月"]["total"] += cash
                 m_stats[f"{m}月"]["detail"].append({"股票": item['symbol'].split('.')[0], "金額": int(cash)})
                 annual_total += cash
+                
             t_mkt += (item['shares'] * curr_p); t_pnl += item['manual_pnl']; t_cost += (item['shares'] * item['cost']); t_day_change += day_chg
+            
             res.append({
                 "狀態": status_light,
                 "代號名稱": f"{item['symbol'].split('.')[0]} {item['name']}", 
@@ -221,7 +232,6 @@ chart = alt.Chart(chart_df).mark_bar(color="#3b82f6", cornerRadiusTopLeft=5, cor
 
 st.altair_chart(chart, use_container_width=True)
 
-# --- 領息明細區塊 ---
 st.markdown("#### 🔍 每月領息明細")
 detail_rows = []
 for m in month_order:
@@ -236,15 +246,47 @@ else:
 
 st.metric("預估年領總息", f"{g_annual:,.0f} 元")
 
-with st.expander("🛠 資產管理"):
+# --- 🛠 改良版的資產管理：支援新增與刪除 ---
+with st.expander("🛠 資產管理 (可新增/刪除股票)"):
     updated_list = []
+    
+    # 逐一顯示現有持股並提供刪除按鈕
     for i, item in enumerate(st.session_state.my_data.get('etfs', [])):
-        c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
-        with c1: st.write(f"**{item['name']}**")
-        with c2: s = st.number_input(f"股數", value=int(item['shares']), key=f"s_{i}", step=10)
+        c1, c2, c3, c4, c5 = st.columns([1.5, 1, 1, 1, 0.5])
+        with c1: st.write(f"**{item['name']}** ({item['symbol']})")
+        with c2: s = st.number_input(f"股數", value=int(item['shares']), key=f"s_{i}", step=100)
         with c3: c = st.number_input(f"成本", value=float(item['cost']), key=f"c_{i}")
         with c4: p = st.number_input(f"損益修正", value=int(item['manual_pnl']), key=f"p_{i}")
+        with c5: 
+            if st.button("🗑️", key=f"del_{i}", help="刪除此股票"):
+                continue # 跳過此股票不加入 updated_list 即代表刪除
         updated_list.append({"symbol": item['symbol'], "name": item['name'], "shares": s, "cost": c, "manual_pnl": p})
-    if st.button("💾 儲存所有變更", type="primary"):
+    
+    st.divider()
+    
+    # 新增股票區塊
+    st.write("➕ **新增股票**")
+    nc1, nc2, nc3 = st.columns([2, 1, 1])
+    with nc1: new_symbol = st.text_input("輸入股票代號 (例如 00878.TW)", placeholder="0000.TW").upper()
+    with nc2: new_shares = st.number_input("預設股數", value=1000, step=100)
+    with nc3: 
+        if st.button("✨ 點我新增標的"):
+            if new_symbol:
+                try:
+                    with st.spinner("抓取股票名稱中..."):
+                        tk = yf.Ticker(new_symbol)
+                        # 嘗試取得長名或短名，若抓不到則用代號代替
+                        new_name = tk.info.get('longName', tk.info.get('shortName', new_symbol))
+                        # 加入新標的到列表
+                        updated_list.append({"symbol": new_symbol, "name": new_name, "shares": new_shares, "cost": 0.0, "manual_pnl": 0})
+                        st.success(f"已新增 {new_name}！請記得點擊下方儲存。")
+                except:
+                    st.error("找不到該股票代號，請檢查格式是否正確 (需包含 .TW)")
+            else:
+                st.warning("請先輸入代號")
+
+    if st.button("💾 儲存所有變更並更新畫面", type="primary"):
         st.session_state.my_data['etfs'] = updated_list
-        save_to_json(st.session_state.my_data); st.cache_data.clear(); st.rerun()
+        save_to_json(st.session_state.my_data)
+        st.cache_data.clear()
+        st.rerun()

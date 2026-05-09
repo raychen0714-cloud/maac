@@ -7,7 +7,13 @@
             "cost": 90.58,
             "alert_high": 0.0,
             "alert_low": 0.0,
-            "pledged_shares": 0.0
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "manual_freq": "",
+            "manual_months": ""
         },
         {
             "symbol": "0056.TW",
@@ -16,7 +22,13 @@
             "cost": 38.87,
             "alert_high": 0.0,
             "alert_low": 0.0,
-            "pledged_shares": 0.0
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "manual_freq": "",
+            "manual_months": ""
         },
         {
             "symbol": "00878.TW",
@@ -25,7 +37,13 @@
             "cost": 24.42,
             "alert_high": 0.0,
             "alert_low": 0.0,
-            "pledged_shares": 0.0
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "manual_freq": "",
+            "manual_months": ""
         },
         {
             "symbol": "00891.TW",
@@ -34,7 +52,13 @@
             "cost": 33.7,
             "alert_high": 0.0,
             "alert_low": 0.0,
-            "pledged_shares": 0.0
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "manual_freq": "",
+            "manual_months": ""
         },
         {
             "symbol": "00927.TW",
@@ -43,7 +67,13 @@
             "cost": 28.65,
             "alert_high": 0.0,
             "alert_low": 0.0,
-            "pledged_shares": 0.0
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "manual_freq": "",
+            "manual_months": ""
         },
         {
             "symbol": "00981A.TW",
@@ -52,16 +82,28 @@
             "cost": 28.1,
             "alert_high": 0.0,
             "alert_low": 0.0,
-            "pledged_shares": 0.0
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "manual_freq": "",
+            "manual_months": ""
         },
         {
-            "symbol": "00992A.TW",
+            "symbol": "00982A.TW",
             "name": "主動群益台灣強棒",
             "holdings": 5.0,
             "cost": 22.84,
             "alert_high": 0.0,
             "alert_low": 0.0,
-            "pledged_shares": 0.0
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.64,
+            "manual_ex_date": "2026.5/18",
+            "manual_pay_date": "",
+            "manual_freq": "季配",
+            "manual_months": "2、5、8、11 月"
         }
     ],
     "pledge": {

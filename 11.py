@@ -111,7 +111,7 @@ ACTIVE_ETFS = {
     "00999A": "00999A 主動野村臺灣動能",
     "00401A": "00401A 主動摩根台灣鑫收",
     # -- 新增清單區 --
-    "00992A": "00992A 主動群益科技創新",
+    "00992A": "00992A 主動群益台灣強棒", # 這裡依照您的庫存更新了名稱
     "00400A": "00400A 主動國泰動能高息",
     "00997A": "00997A 主動群益美國增長",
     "00988A": "00988A 主動統一全球創新",
@@ -148,13 +148,16 @@ ETF_CONSTITUENTS_DB = {
 }
 
 def load_settings():
-    # 強制載入最新朋友的持股資料庫
+    # 強制載入最新朋友的持股資料庫 (已根據您的最新庫存截圖更新)
     default_data = {
         "etfs": [
-            {"symbol": "0050.TW", "name": "元大台灣50", "holdings": 8.486, "cost": 37.22, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
-            {"symbol": "0056.TW", "name": "元大高股息", "holdings": 3.0, "cost": 41.45, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
-            {"symbol": "00940.TW", "name": "元大台灣價值高息", "holdings": 13.0, "cost": 9.88, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
-            {"symbol": "2887.TW", "name": "台新新光金", "holdings": 2.274, "cost": 17.91, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0}
+            {"symbol": "0050.TW", "name": "元大台灣50", "holdings": 2.0, "cost": 90.58, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
+            {"symbol": "0056.TW", "name": "元大高股息", "holdings": 20.0, "cost": 38.87, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
+            {"symbol": "00878.TW", "name": "國泰永續高股息", "holdings": 21.0, "cost": 24.42, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
+            {"symbol": "00891.TW", "name": "中信關鍵半導體", "holdings": 8.0, "cost": 33.70, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
+            {"symbol": "00927.TW", "name": "群益半導體收益", "holdings": 20.0, "cost": 28.65, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
+            {"symbol": "00981A.TW", "name": "主動統一台股增長", "holdings": 15.0, "cost": 28.10, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
+            {"symbol": "00992A.TW", "name": "主動群益台灣強棒", "holdings": 5.0, "cost": 22.84, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0}
         ], 
         "pledge": {"borrowed_amount": 0},
         "watchlist": [] 

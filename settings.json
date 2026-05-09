@@ -20,7 +20,7 @@
         },
         {
             "symbol": "00878.TW",
-            "name": "00878 國泰永續高股息",
+            "name": "國泰永續高股息",
             "holdings": 21.0,
             "cost": 24.42,
             "alert_high": 0.0,
@@ -29,7 +29,7 @@
         },
         {
             "symbol": "00891.TW",
-            "name": "00891 中信關鍵半導體",
+            "name": "中信關鍵半導體",
             "holdings": 8.0,
             "cost": 33.7,
             "alert_high": 0.0,
@@ -38,7 +38,7 @@
         },
         {
             "symbol": "00927.TW",
-            "name": "00927 群益半導體收益",
+            "name": "群益半導體收益",
             "holdings": 20.0,
             "cost": 28.65,
             "alert_high": 0.0,
@@ -47,7 +47,7 @@
         },
         {
             "symbol": "00981A.TW",
-            "name": "00981A 主動統一台股增長",
+            "name": "主動統一台股增長",
             "holdings": 15.0,
             "cost": 28.1,
             "alert_high": 0.0,
@@ -55,8 +55,8 @@
             "pledged_shares": 0.0
         },
         {
-            "symbol": "00982A.TW",
-            "name": "00982A ETF",
+            "symbol": "00992A.TW",
+            "name": "主動群益台灣強棒",
             "holdings": 5.0,
             "cost": 22.84,
             "alert_high": 0.0,

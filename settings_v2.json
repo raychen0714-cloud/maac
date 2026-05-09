@@ -1,0 +1,98 @@
+{
+    "etfs": [
+        {
+            "symbol": "0050.TW",
+            "name": "元大台灣50",
+            "holdings": 8.538,
+            "cost": 37.58,
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_freq": "",
+            "manual_months": "",
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "alert_high": 0.0,
+            "alert_low": 0.0
+        },
+        {
+            "symbol": "0056.TW",
+            "name": "元大高股息",
+            "holdings": 3.0,
+            "cost": 41.45,
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_freq": "",
+            "manual_months": "",
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "alert_high": 0.0,
+            "alert_low": 0.0
+        },
+        {
+            "symbol": "00878.TW",
+            "name": "國泰永續高股息",
+            "holdings": 5.0,
+            "cost": 27.01,
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_freq": "",
+            "manual_months": "",
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "alert_high": 0.0,
+            "alert_low": 0.0
+        },
+        {
+            "symbol": "00891.TW",
+            "name": "中信關鍵半導體",
+            "holdings": 5.0,
+            "cost": 33.67,
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_freq": "",
+            "manual_months": "",
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "alert_high": 0.0,
+            "alert_low": 0.0
+        },
+        {
+            "symbol": "00940.TW",
+            "name": "元大台灣價值高息",
+            "holdings": 13.0,
+            "cost": 9.88,
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_freq": "",
+            "manual_months": "",
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "alert_high": 0.0,
+            "alert_low": 0.0
+        },
+        {
+            "symbol": "2887.TW",
+            "name": "台新新光金",
+            "holdings": 2.274,
+            "cost": 17.91,
+            "pledged_shares": 0.0,
+            "manual_price": 0.0,
+            "manual_div": 0.0,
+            "manual_freq": "",
+            "manual_months": "",
+            "manual_ex_date": "",
+            "manual_pay_date": "",
+            "alert_high": 0.0,
+            "alert_low": 0.0
+        }
+    ],
+    "pledge": {
+        "borrowed_amount": 0
+    },
+    "watchlist": []
+}

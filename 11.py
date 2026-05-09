@@ -3,6 +3,8 @@ import yfinance as yf
 import pandas as pd
 import json
 import os
+import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import time
 import altair as alt
@@ -64,7 +66,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 2. 系統設定與資料庫 ---
-SETTINGS_FILE = 'settings.json'
+# 🔥 這裡把檔名換成 settings_v2.json，強制系統讀取新的預設資料！
+SETTINGS_FILE = 'settings_v2.json'
 
 PASSIVE_ETFS = {
     "0050": "0050 元大台灣50", "006208": "006208 富邦台50", "00692": "00692 富邦公司治理", 
@@ -128,13 +131,12 @@ ETF_CONSTITUENTS_DB = {
 def load_settings():
     default_data = {
         "etfs": [
-            {"symbol": "0050.TW", "name": "元大台灣50", "holdings": 2.0, "cost": 90.58},
-            {"symbol": "0056.TW", "name": "元大高股息", "holdings": 20.0, "cost": 38.87},
-            {"symbol": "00878.TW", "name": "國泰永續高股息", "holdings": 21.0, "cost": 24.42},
-            {"symbol": "00891.TW", "name": "中信關鍵半導體", "holdings": 8.0, "cost": 33.70},
-            {"symbol": "00927.TW", "name": "群益半導體收益", "holdings": 20.0, "cost": 28.65},
-            {"symbol": "00981A.TW", "name": "主動統一台股增長", "holdings": 15.0, "cost": 28.10},
-            {"symbol": "00982A.TW", "name": "主動群益台灣強棒", "holdings": 5.0, "cost": 22.84} 
+            {"symbol": "0050.TW", "name": "元大台灣50", "holdings": 8.538, "cost": 37.58},
+            {"symbol": "0056.TW", "name": "元大高股息", "holdings": 3.0, "cost": 41.45},
+            {"symbol": "00878.TW", "name": "國泰永續高股息", "holdings": 5.0, "cost": 27.01},
+            {"symbol": "00891.TW", "name": "中信關鍵半導體", "holdings": 5.0, "cost": 33.67},
+            {"symbol": "00940.TW", "name": "元大台灣價值高息", "holdings": 13.0, "cost": 9.88},
+            {"symbol": "2887.TW", "name": "台新新光金", "holdings": 2.274, "cost": 17.91}
         ], 
         "pledge": {"borrowed_amount": 0},
         "watchlist": [] 
@@ -158,8 +160,8 @@ def load_settings():
                     etf.setdefault('manual_div', 0.0)
                     etf.setdefault('manual_freq', "")
                     etf.setdefault('manual_months', "")
-                    etf.setdefault('manual_ex_date', "")   # 🔥 新增手動除息日
-                    etf.setdefault('manual_pay_date', "")  # 🔥 新增手動發放日
+                    etf.setdefault('manual_ex_date', "")   
+                    etf.setdefault('manual_pay_date', "")  
                 return data
         except: pass
     return default_data
@@ -630,6 +632,12 @@ def fetch_data(etf_list):
         
     return pd.DataFrame(results), pd.DataFrame(tech_results), total_mkt, total_cost, total_div, total_today_pnl, radar_ex, radar_pay, price_alerts, monthly_calendar
 
+# 👇 確保讀取新設定後，清空一下畫面暫存，避免讀取到舊的 session_state
+if 'force_refresh_v2' not in st.session_state:
+    st.session_state.force_refresh_v2 = True
+    st.session_state.my_data = load_settings()
+    st.cache_data.clear()
+
 df, df_tech, g_mkt, g_cost, g_div, g_today_pnl, radar_ex, radar_pay, price_alerts, monthly_calendar = fetch_data(st.session_state.my_data['etfs'])
 macro_data = fetch_macro_data()
 mini_indices_data = fetch_mini_indices()
@@ -1069,7 +1077,7 @@ with bot_c3:
 st.write("---")
 
 # ================================
-# 🔥 手動校正專區 (新增：手動除息日、發放日)
+# 🔥 手動校正專區 (包含配息頻率、月份、日期)
 # ================================
 with st.expander("✏️ 手動校正專區 (包含配息頻率、月份、日期)", expanded=True):
     st.info("💡 月份請填數字 (例: 1,4,7)。日期請填 YYYY-MM-DD (例: 2026-05-15 或 2026/05/15)。現價填 0 代表自動抓取。")

@@ -18,11 +18,13 @@ st.markdown("""
     [data-testid="stMetricDelta"] svg { fill: red; }
     .stMetric { background-color: #f8f9fa; padding: 10px; border-radius: 10px; }
     
-    .news-box { background-color: #f0f7ff; border-left: 6px solid #4a90e2; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 1px 1px 4px rgba(0,0,0,0.05); }
-    .news-title { font-size: 20px; font-weight: bold; color: #1e3c72; margin-bottom: 15px; display: flex; align-items: center; }
-    .news-item { font-size: 16px; color: #333; margin-bottom: 12px; line-height: 1.5; font-weight: 500;}
-    .news-item a { text-decoration: none; color: #1e3c72; transition: color 0.2s;}
-    .news-item a:hover { text-decoration: underline; color: #d32f2f; }
+    /* 迷你看板樣式 (取代原本的新聞) */
+    .mini-card-container { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 10px; padding-bottom: 10px; margin-bottom: 25px; }
+    .mini-card { min-width: 140px; border: 1px solid #333; border-radius: 8px; padding: 12px 10px; background-color: #212529; text-align: center; box-shadow: 1px 1px 4px rgba(0,0,0,0.15); }
+    .mini-title { font-size: 13px; color: #f8f9fa; font-weight: bold; margin-bottom: 6px; }
+    .mini-time { font-size: 11px; color: #adb5bd; margin-top: 6px; }
+    .mini-price { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
+    .mini-pct { font-size: 12px; font-weight: bold; }
 
     /* 雙重雷達 */
     .ex-div-box { background-color: #ffeaea; border: 1.5px solid #e06666; border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 15px; height: 115px; display: flex; flex-direction: column; justify-content: center; box-shadow: 1px 1px 3px rgba(0,0,0,0.05); overflow-y: auto;}
@@ -37,11 +39,11 @@ st.markdown("""
     .triple-box { background-color: #ffffff; border-radius: 12px; border: 1px solid #e0e0e0; padding: 15px; display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center; margin-bottom: 20px; box-shadow: 2px 2px 8px rgba(0,0,0,0.04); gap: 10px; }
     .triple-col { flex: 1 1 30%; min-width: 140px; text-align: center; padding: 10px 0; }
     .triple-title { font-size: 14px; color: #757575; font-weight: bold; margin-bottom: 5px; }
-    .triple-val-r { font-size: 28px; font-weight: 900; color: #b71c1c; font-family: Arial, sans-serif; line-height: 1.1; }
-    .triple-val-g { font-size: 28px; font-weight: 900; color: #2e7d32; font-family: Arial, sans-serif; line-height: 1.1; }
+    .triple-val-r { font-size: 28px; font-weight: 900; color: #d32f2f; font-family: Arial, sans-serif; line-height: 1.1; }
+    .triple-val-g { font-size: 28px; font-weight: 900; color: #388e3c; font-family: Arial, sans-serif; line-height: 1.1; }
     .triple-val-gold { font-size: 28px; font-weight: 900; color: #f39c12; font-family: Arial, sans-serif; line-height: 1.1; text-shadow: 1px 1px 2px rgba(243, 156, 18, 0.3); }
-    .triple-pct-r { font-size: 14px; font-weight: bold; color: #b71c1c; margin-top: 5px; }
-    .triple-pct-g { font-size: 14px; font-weight: bold; color: #2e7d32; margin-top: 5px; }
+    .triple-pct-r { font-size: 14px; font-weight: bold; color: #d32f2f; margin-top: 5px; }
+    .triple-pct-g { font-size: 14px; font-weight: bold; color: #388e3c; margin-top: 5px; }
     .triple-sub-gold { font-size: 12px; font-weight: bold; color: #7f8c8d; margin-top: 5px; }
 
     /* 閃電特效 */
@@ -111,7 +113,7 @@ ACTIVE_ETFS = {
     "00999A": "00999A 主動野村臺灣動能",
     "00401A": "00401A 主動摩根台灣鑫收",
     # -- 新增清單區 --
-    "00992A": "00992A 主動群益台灣強棒", # 這裡依照您的庫存更新了名稱
+    "00992A": "00992A 主動群益台灣強棒",
     "00400A": "00400A 主動國泰動能高息",
     "00997A": "00997A 主動群益美國增長",
     "00988A": "00988A 主動統一全球創新",
@@ -148,7 +150,6 @@ ETF_CONSTITUENTS_DB = {
 }
 
 def load_settings():
-    # 強制載入最新朋友的持股資料庫 (已根據您的最新庫存截圖更新)
     default_data = {
         "etfs": [
             {"symbol": "0050.TW", "name": "元大台灣50", "holdings": 2.0, "cost": 90.58, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0},
@@ -325,31 +326,28 @@ def toggle_holdings(): st.session_state.show_holdings = not st.session_state.sho
 def toggle_constituents(): st.session_state.show_constituents = not st.session_state.show_constituents
 def toggle_pledge(): st.session_state.show_pledge = not st.session_state.show_pledge 
 
-# --- 📡 抓取 ETF 焦點新聞 ---
-@st.cache_data(ttl=3600)
-def fetch_etf_news():
-    news_list = []
-    today_str = datetime.now().strftime("%m/%d")
-    try:
-        url = "https://news.google.com/rss/search?q=%E5%8F%B0%E7%81%A3+ETF+%E6%96%B0%E4%B8%8A%E5%B8%82+OR+%E9%85%8D%E6%81%AF+OR+%E6%88%90%E5%88%86%E8%82%A1&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=3) as response:
-            root = ET.fromstring(response.read())
-            for item in root.findall('.//item')[:4]:
-                title = item.find('title').text
-                if " - " in title: title = title.rsplit(" - ", 1)[0]
-                link = item.find('link').text
-                news_list.append({"title": f"{today_str} {title}", "link": link})
-    except Exception: pass
-    
-    if not news_list:
-        news_list = [
-            {"title": f"{today_str} 盤前觀察：半導體龍頭動向 (影響 00927 走勢)", "link": "#"},
-            {"title": f"{today_str} 高股息標的篩選：關注 00878、0056 成分股調整", "link": "#"},
-            {"title": f"{today_str} 焦點情報：多檔新上市主動式 ETF 展開募集與掛牌", "link": "#"},
-            {"title": f"{today_str} 大盤壓力測試：正二 (00631L) 槓桿風險控管建議", "link": "#"}
-        ]
-    return news_list
+# --- 📡 抓取美股與台指期迷你看板數據 ---
+@st.cache_data(ttl=60)
+def fetch_mini_indices():
+    tickers = {
+        "那斯達克": "^IXIC", "費半指數": "^SOX", "NASDAQ-100": "^NDX",
+        "MICRON (美光)": "MU", "NVIDIA CORP": "NVDA", "台積電 ADR": "TSM",
+        "台指近全": "WTX&P"
+    }
+    results = []
+    for name, sym in tickers.items():
+        try:
+            tk = yf.Ticker(sym)
+            hist = tk.history(period="5d")
+            if len(hist) >= 2:
+                curr = hist['Close'].iloc[-1]
+                prev = hist['Close'].iloc[-2]
+                diff = curr - prev
+                pct = (diff / prev) * 100
+                time_str = hist.index[-1].strftime("%H:%M")
+                results.append({"name": name, "price": curr, "diff": diff, "pct": pct, "time": time_str})
+        except: pass
+    return results
 
 # --- 📈 抓取美台股大盤指標 ---
 @st.cache_data(ttl=300) 
@@ -379,7 +377,7 @@ def render_macro_cards(data_dict, region_prefix):
     idx = 0
     for name, data in data_dict.items():
         is_up = data['diff'] >= 0
-        color_hex = "#e74c3c" if is_up else "#2ecc71" 
+        color_hex = "#d32f2f" if is_up else "#388e3c" 
         sign = "+" if is_up else ""
         
         html = f"""
@@ -553,12 +551,10 @@ def fetch_data(etf_list):
             mkt_val = shares * curr_p
             cost_val = shares * item['cost']
             
-            # 券商真實成本估算 (扣除手續費與證交稅) 
             sell_cost_estimate = mkt_val * 0.00235
             profit = mkt_val - cost_val - sell_cost_estimate
             roi = (profit / cost_val * 100) if cost_val != 0 else 0
             
-            # 今日漲跌與損益計算
             today_diff = curr_p - prev_close
             today_profit = shares * today_diff
             today_pct_change = (today_diff / prev_close * 100) if prev_close else 0
@@ -651,8 +647,11 @@ def fetch_data(etf_list):
 
             total_mkt += mkt_val; total_cost += cost_val; total_div += (shares * div_amount)
             
+            # --- 在這裡新增了 "現價/成本" 的合併顯示欄位 ---
             results.append({
-                "代號": item['symbol'], "名稱": item['name'], "現價": curr_p, "均價": item['cost'],
+                "代號": item['symbol'], "名稱": item['name'], 
+                "現價/成本": f"{curr_p:.2f} / {item['cost']:.2f}",
+                "現價": curr_p, "均價": item['cost'],
                 "張數": item['holdings'], "市值": mkt_val, "損益": profit, "報酬率": roi,
                 "單次預估領息": shares * div_amount, "每股配息": div_amount,
                 "最新公告除息日": ex_date, "預估發放日": pay_date, "已公告": is_announced,
@@ -662,7 +661,8 @@ def fetch_data(etf_list):
             tech_results.append({
                 "ETF 名稱": display_name,
                 "股票張數": item['holdings'], 
-                "現價": round(curr_p, 2),
+                "現價/成本": f"{curr_p:.2f} / {item['cost']:.2f}",
+                "現價": curr_p,
                 "今日損益": today_pnl_str,
                 "今日漲跌幅": today_pct_str, 
                 "今日交易量": f"{vol:,.0f}" if vol > 0 else "無資料",
@@ -679,17 +679,26 @@ def fetch_data(etf_list):
 
 df, df_tech, g_mkt, g_cost, g_div, g_today_pnl, radar_ex, radar_pay, price_alerts, monthly_calendar = fetch_data(st.session_state.my_data['etfs'])
 macro_data = fetch_macro_data()
+mini_indices_data = fetch_mini_indices()
 
 # --- 5. 介面呈現 ---
 st.title("📈 實戰資產戰情室")
 st.caption(f"最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-news_data = fetch_etf_news()
-news_html = "<div class='news-box'><div class='news-title'>📰 今日財經焦點</div>"
-for news in news_data:
-    news_html += f"<div class='news-item'>👉 📍 <a href='{news['link']}' target='_blank'>{news['title']}</a></div>"
-news_html += "</div>"
-st.markdown(news_html, unsafe_allow_html=True)
+# ================= 移除原本的新聞，改為迷你看板 (修復 Markdown 排版 Bug) =================
+if mini_indices_data:
+    mini_html = '<div class="mini-card-container">'
+    for d in mini_indices_data:
+        # 台股顏色邏輯：紅漲綠跌
+        is_up = d['diff'] >= 0
+        color_hex = "#d32f2f" if is_up else "#388e3c"
+        sign = "▲" if is_up else "▼"
+        
+        # 移除前面的空白縮排，避免 Streamlit 將其判定為程式碼區塊
+        mini_html += f"<div class='mini-card'><div class='mini-title'>{d['name']}</div><div class='mini-price' style='color: {color_hex};'>{d['price']:,.2f}</div><div class='mini-pct' style='color: {color_hex};'>{sign} {abs(d['diff']):.2f} ({abs(d['pct']):.2f}%)</div><div class='mini-time'>🕒 {d['time']}</div></div>"
+    mini_html += '</div>'
+    st.markdown(mini_html, unsafe_allow_html=True)
+# =========================================================================================
 
 st.markdown("### 🗓️ 2026 即將上市 ETF 追蹤")
 upcoming_list = [
@@ -937,10 +946,11 @@ if st.session_state.show_tech:
             column_config={
                 "設定高標(停利)": st.column_config.NumberColumn("設定高標(停利)", help="雙擊輸入，超過觸發紅色警報", min_value=0.0, format="%.2f"),
                 "設定低標(停損)": st.column_config.NumberColumn("設定低標(停損)", help="雙擊輸入，低於觸發綠色警報", min_value=0.0, format="%.2f"),
-                "現價": st.column_config.NumberColumn("現價", format="%.2f"),
+                "現價/成本": st.column_config.TextColumn("現價 / 成本", disabled=True),
+                "現價": None, # 將純數字的現價隱藏，只顯示合併欄位
                 "股票張數": st.column_config.NumberColumn("股票張數", format="%.1f") 
             },
-            disabled=["ETF 名稱", "股票張數", "現價", "今日損益", "今日漲跌幅", "今日交易量", "預估年化殖利率", "今日最高/最低", "52週最高/最低"],
+            disabled=["ETF 名稱", "股票張數", "現價/成本", "現價", "今日損益", "今日漲跌幅", "今日交易量", "預估年化殖利率", "今日最高/最低", "52週最高/最低"],
             use_container_width=True, hide_index=True
         )
 
@@ -1014,7 +1024,8 @@ if st.session_state.show_holdings:
             status_badge = "✅ 已公告" if row['已公告'] else "⏳ 依前次估算"
             with st.expander(f"💎 {row['名稱']} | 預估淨報酬: :{p_color}[{roi_str}]", expanded=True):
                 col_l, col_m, col_r = st.columns(3)
-                with col_l: st.write(f"張數: **{row['張數']}**"); st.write(f"現價: **{row['現價']:.2f}**"); st.caption(f"均價: {row['均價']:.2f}")
+                # --- 在這裡顯示合併的 現價/成本 ---
+                with col_l: st.write(f"張數: **{row['張數']}**"); st.write(f"現價 / 成本: **{row['現價/成本']}**")
                 with col_m: st.markdown(f"市值: **${row['市值']:,.0f}**"); st.markdown(f"預估淨利: :{p_color}[**${row['損益']:,.0f}**]")
                 with col_r: st.markdown(f"單次領息估算: :orange[**${row['單次預估領息']:,.0f}**]"); st.caption(f"📅 最新除息日: {row['最新公告除息日']} ({status_badge})")
     else:
@@ -1289,8 +1300,6 @@ with bot_c3:
         label_visibility="collapsed"
     )
     st.markdown("</div>", unsafe_allow_html=True)
-
-
 
 # 🎯 放在腳本最底層的自動更新執行邏輯
 if st.session_state.auto_refresh_mode == "✅ USE (開啟)":

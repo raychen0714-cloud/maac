@@ -867,7 +867,7 @@ if st.session_state.show_tech:
                 "設定高標(停利)": st.column_config.NumberColumn("設定高標(停利)", min_value=0.0, format="%.2f"),
                 "設定低標(停損)": st.column_config.NumberColumn("設定低標(停損)", min_value=0.0, format="%.2f"),
                 "現價/成本": st.column_config.TextColumn("現價 / 成本", disabled=True),
-                "現價": None, "股票張數": st.column_config.NumberColumn("股票張數", format="%.1f") 
+                "現價": None, "股票張數": st.column_config.NumberColumn("股票張數", format="%.3f") 
             },
             disabled=["ETF 名稱", "股票張數", "現價/成本", "現價", "今日損益", "今日漲跌幅", "今日交易量", "預估年化殖利率", "今日最高/最低", "52週最高/最低"],
             use_container_width=True, hide_index=True

@@ -1417,7 +1417,8 @@ with bot_c2:
 
             st.button("💾 儲存所有修改", use_container_width=True, type="primary", on_click=save_edits)
 
-if st.session_state.auto_refresh_mode == "✅ USE (開啟)":
+# 使用 .get() 安全讀取，如果變數不存在預設回傳 None，就不會報錯了
+if st.session_state.get('auto_refresh_mode') == "✅ USE (開啟)":
     time.sleep(5)
     st.cache_data.clear() 
     st.rerun()

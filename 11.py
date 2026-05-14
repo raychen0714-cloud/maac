@@ -159,7 +159,7 @@ ETF_FULL_DATABASE = {
 EXTRA_ETFS = {
     "00631L": "00631L 元大台灣50正2", "00673R": "00673R 期元大S&P原油反1", 
     "00632R": "00632R 元大台灣50反1", "009819": "009819 中信數據及電力", 
-    "00712": "00712 復華富時不動產", "00992A": "00992A 主動群益科技創新",
+    "00712": "00712 復華富時不動產", "00992A": "00992A 主স্তাফ群益科技創新",
     "00400A": "00400A 主動國泰動能高息", "00997A": "00997A 主動群益美國增長",
     "00988A": "00988A 主動統一全球創新", "00994A": "00994A 主動第一金台股優",
     "00646": "00646 元大S&P500", "00662": "00662 富邦NASDAQ", 
@@ -206,9 +206,9 @@ def load_settings():
         "pledge": {"borrowed_amount": 0},
         "watchlist": [],
         "custom_divs": {
-            "00891.TW": {"v": 1.250, "d": "2026-05-20", "p": "2026-06-15"},
-            "00878.TW": {"v": 0.510, "d": "2026-05-18", "p": "2026-06-12"},
-            "00982A.TW": {"v": 0.377, "d": "2026-05-21", "p": "2026-06-18"}
+            "00891.TW": {"v": 1.250, "d": "2026-05-20", "p": "2026-06-15", "s": 0},
+            "00878.TW": {"v": 0.510, "d": "2026-05-18", "p": "2026-06-12", "s": 0},
+            "00982A.TW": {"v": 0.377, "d": "2026-05-21", "p": "2026-06-18", "s": 0}
         }
     }
     if os.path.exists(SETTINGS_FILE):
@@ -218,8 +218,11 @@ def load_settings():
                 for k, v in default_data.items():
                     if k not in data: data[k] = v
                 
-                # 🔥 強制將程式碼中的手動配息資料更新進你的存檔中
-                data['custom_divs'].update(default_data['custom_divs'])
+                for k in default_data['custom_divs']:
+                    if k not in data['custom_divs']:
+                         data['custom_divs'][k] = default_data['custom_divs'][k]
+                    elif 's' not in data['custom_divs'][k]:
+                         data['custom_divs'][k]['s'] = default_data['custom_divs'][k]['s']
                 
                 return data
         except: pass
@@ -239,10 +242,9 @@ now_str = datetime.now().strftime("%Y-%m")
 
 if 'pledge' not in st.session_state.my_data: st.session_state.my_data['pledge'] = {"borrowed_amount": 0}
 
-# 確保所有庫存 ETF 都有質押相關欄位
 for etf in st.session_state.my_data['etfs']:
     if 'pledged_shares' not in etf: etf['pledged_shares'] = 0.0
-    if 'is_pledged' not in etf: etf['is_pledged'] = False # 新增：勾選狀態記錄
+    if 'is_pledged' not in etf: etf['is_pledged'] = False 
 save_to_json(st.session_state.my_data)
 
 # --- 🚀 Callback 函數區 ---
@@ -884,15 +886,38 @@ if st.session_state.show_div_db:
     else:
         st.info("目前尚無庫存或自選股，因此無除權息資料可顯示。")
         
-    with st.expander("🛠️ 手動配息覆蓋面板 (修正 Yahoo 資料庫延遲)", expanded=False):
+    with st.expander("🛠️ 手動配息覆蓋面板 (修正 Yahoo 資料庫延遲與領息試算)", expanded=False):
         st.caption("💡 投信剛公告但系統尚未抓到時，可直接在下方表格雙擊修改，按下儲存即可全站套用！(代號務必加上 .TW)")
+        st.caption("💸 輸入「持有張數」後，系統會自動幫您計算出此次除息預計領取的總金額！")
         
         custom_dict = st.session_state.my_data.get('custom_divs', {})
-        df_custom = pd.DataFrame([{"代號": k, "每股配息": v['v'], "除息日": v['d'], "發放日": v['p']} for k, v in custom_dict.items()])
+        df_custom = pd.DataFrame([
+            {
+                "代號": k, 
+                "每股配息": v.get('v', 0.0), 
+                "除息日": v.get('d', ''), 
+                "發放日": v.get('p', ''),
+                "持有張數": v.get('s', 0.0) 
+            } 
+            for k, v in custom_dict.items()
+        ])
+        
         if df_custom.empty:
-            df_custom = pd.DataFrame([{"代號": "00878.TW", "每股配息": 0.660, "除息日": "2026-05-18", "發放日": "2026-06-15"}])
+            df_custom = pd.DataFrame([{"代號": "00878.TW", "每股配息": 0.660, "除息日": "2026-05-18", "發放日": "2026-06-15", "持有張數": 0.0}])
             
-        edited_custom = st.data_editor(df_custom, num_rows="dynamic", use_container_width=True, key="custom_div_editor")
+        edited_custom = st.data_editor(
+            df_custom, 
+            num_rows="dynamic", 
+            use_container_width=True, 
+            key="custom_div_editor",
+            column_config={
+                "代號": st.column_config.TextColumn("代號 (.TW)"),
+                "每股配息": st.column_config.NumberColumn("每股配息 ($)", format="%.3f", min_value=0.0),
+                "除息日": st.column_config.TextColumn("除息日 (YYYY-MM-DD)"),
+                "發放日": st.column_config.TextColumn("發放日 (YYYY-MM-DD)"),
+                "持有張數": st.column_config.NumberColumn("持有張數 (選填)", format="%.1f", min_value=0.0)
+            }
+        )
         
         if st.button("💾 儲存手動覆蓋資料並套用", type="primary"):
             new_db = {}
@@ -903,13 +928,34 @@ if st.session_state.show_div_db:
                     new_db[sym] = {
                         "v": float(row['每股配息']) if pd.notna(row['每股配息']) else 0.0,
                         "d": str(row['除息日']) if pd.notna(row['除息日']) else "",
-                        "p": str(row['發放日']) if pd.notna(row['發放日']) else ""
+                        "p": str(row['發放日']) if pd.notna(row['發放日']) else "",
+                        "s": float(row['持有張數']) if pd.notna(row['持有張數']) else 0.0
                     }
             st.session_state.my_data['custom_divs'] = new_db
             save_to_json(st.session_state.my_data)
             st.cache_data.clear() 
             st.session_state.update_success = "手動覆蓋資料已儲存並成功套用！"
             st.rerun()
+            
+        # --- 新增的領息試算結果區塊 ---
+        st.markdown("##### 💸 此次手動配息預估領息結果")
+        calc_results = []
+        for _, row in edited_custom.iterrows():
+            sym = str(row['代號']).strip()
+            if sym and sym != "nan":
+                div_val = float(row['每股配息']) if pd.notna(row['每股配息']) else 0.0
+                shares = float(row['持有張數']) if pd.notna(row['持有張數']) else 0.0
+                if div_val > 0 and shares > 0:
+                    total_div = div_val * shares * 1000
+                    calc_results.append({
+                        "代號": sym,
+                        "預估領息總額": f"${total_div:,.0f}"
+                    })
+        
+        if calc_results:
+            st.dataframe(pd.DataFrame(calc_results), hide_index=True, use_container_width=True)
+        else:
+            st.info("請於上方表格輸入大於 0 的「每股配息」與「持有張數」，系統將自動為您試算。")
 
     st.write("---")
 
@@ -1115,13 +1161,10 @@ if st.session_state.show_daily_price:
                     except:
                         pass
                         
-                # 補正空值
                 hist_data = hist_data.ffill()
                 
-                # 計算與前一日的漲跌價差
                 diff_data = hist_data.diff()
                 
-                # 取近 30 個交易日
                 hist_data = hist_data.tail(30)
                 diff_data = diff_data.tail(30)
                 
@@ -1136,7 +1179,6 @@ if st.session_state.show_daily_price:
                 if valid_port_names:
                     st.markdown("##### 📉 每日收盤價與漲跌 (庫存)")
                     
-                    # 建立結合「收盤價」與「漲跌」的新 DataFrame
                     combined_df = pd.DataFrame(index=valid_port_names, columns=h_display.columns)
                     
                     for etf_name in valid_port_names:
@@ -1147,11 +1189,9 @@ if st.session_state.show_daily_price:
                             if pd.isna(price) or pd.isna(diff):
                                 combined_df.loc[etf_name, col] = "-"
                             else:
-                                # 格式化：若上漲加 '+'，若是 0 則不顯示符號
                                 sign = "+" if diff > 0 else ""
                                 combined_df.loc[etf_name, col] = f"{price:.2f} ({sign}{diff:.2f})"
 
-                    # 根據字串內的 "(+" 或 "(-" 來上色
                     def color_price_diff(df_to_style):
                         css = pd.DataFrame('', index=df_to_style.index, columns=df_to_style.columns)
                         for idx in df_to_style.index:
@@ -1161,7 +1201,7 @@ if st.session_state.show_daily_price:
                                     css.loc[idx, col] = 'color: #d32f2f; font-weight: bold;'
                                 elif "(-" in val_str:
                                     css.loc[idx, col] = 'color: #388e3c; font-weight: bold;'
-                                elif "-" not in val_str: # 平盤
+                                elif "-" not in val_str:
                                     css.loc[idx, col] = 'color: #555;'
                         return css
 
@@ -1203,10 +1243,8 @@ if st.session_state.show_pledge:
             except:
                 curr_p = 0
                 
-            # 🔥 新增：計算原本的庫存總市值 (不管有沒有打勾都要顯示)
             original_mkt = h_total * 1000 * curr_p
                 
-            # 只有打勾的才算進擔保品市值
             p_mkt = p_shares * 1000 * curr_p if is_pledged else 0
             p_limit = p_mkt * 0.6 if is_pledged else 0
             total_pledge_mkt += p_mkt
@@ -1216,7 +1254,7 @@ if st.session_state.show_pledge:
                 "✓ 選取": is_pledged,
                 "ETF 名稱": name,
                 "總庫存 (張)": h_total,
-                "庫存市值 (元)": round(original_mkt, 0), # 🔥 新增欄位：永遠顯示原市值
+                "庫存市值 (元)": round(original_mkt, 0),
                 "質押張數": p_shares,
                 "現價": round(curr_p, 2),
                 "質押市值 (元)": round(p_mkt, 0),
@@ -1248,12 +1286,12 @@ if st.session_state.show_pledge:
             column_config={
                 "✓ 選取": st.column_config.CheckboxColumn("✓ 選取質押", help="勾選後才會計入擔保品總市值"),
                 "質押張數": st.column_config.NumberColumn("質押張數 (雙擊編輯)", min_value=0.0, step=1.0, format="%.1f"),
-                "庫存市值 (元)": st.column_config.NumberColumn("庫存市值 (元)", format="%.0f"), # 🔥 設定顯示格式
+                "庫存市值 (元)": st.column_config.NumberColumn("庫存市值 (元)", format="%.0f"),
                 "現價": st.column_config.NumberColumn("現價", format="%.2f"),
                 "質押市值 (元)": st.column_config.NumberColumn("質押市值 (元)", format="%.0f"),
                 "可借上限 (60%)": st.column_config.NumberColumn("可借上限 (60%)", format="%.0f") 
             },
-            disabled=["ETF 名稱", "總庫存 (張)", "庫存市值 (元)", "現價", "質押市值 (元)", "可借上限 (60%)"], # 🔥 鎖定避免誤改
+            disabled=["ETF 名稱", "總庫存 (張)", "庫存市值 (元)", "現價", "質押市值 (元)", "可借上限 (60%)"],
             use_container_width=True, hide_index=True
         )
         
@@ -1265,7 +1303,6 @@ if st.session_state.show_pledge:
             
             for etf in st.session_state.my_data['etfs']:
                 if etf['name'] == p_name:
-                    # 防呆機制：如果手動填的質押張數大於總庫存，自動幫總司令校正為總庫存上限
                     if new_p_shares > etf['holdings']:
                         new_p_shares = etf['holdings']
                         
@@ -1394,7 +1431,6 @@ with bot_c2:
 
             st.button("💾 儲存所有修改", use_container_width=True, type="primary", on_click=save_edits)
 
-# 使用 .get() 安全讀取，如果變數不存在預設回傳 None，就不會報錯了
 if st.session_state.get('auto_refresh_mode') == "✅ USE (開啟)":
     time.sleep(5)
     st.cache_data.clear() 

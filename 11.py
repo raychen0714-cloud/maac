@@ -204,7 +204,7 @@ def load_settings():
         "etfs": [], 
         "pledge": {"borrowed_amount": 0},
         "watchlist": [],
-        "custom_divs": {}
+        "custom_divs": {}  # 🔥 已經把預設的測試範例徹底清空了！
     }
     if os.path.exists(SETTINGS_FILE):
         try:

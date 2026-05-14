@@ -930,7 +930,7 @@ if price_alerts:
         else:
             st.markdown(f"<div class='alert-low'>⚠️ 跌破停損低標：【{alert['name']}】 現價 ${alert['price']:.2f} 已跌破您設定的 ${alert['target']}！</div>", unsafe_allow_html=True)
 
-st.markdown("### 👾 雙重雷達戰情室")
+st.markdown("### 👾 羅小翔專用：雙重雷達戰情室")
 col1, col2, _ = st.columns([1, 1, 1])
 
 with col1:

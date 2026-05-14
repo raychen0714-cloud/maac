@@ -19,7 +19,7 @@ if 'update_success' in st.session_state and st.session_state.update_success:
 # 自定義 CSS
 st.markdown("""
     <style>
-    /* 🔥 終極暴力隱藏表格右上角浮動工具列 (對付各版本 Streamlit) */
+    /* 🔥 終極暴力隱藏表格右上角浮動工具列 */
     [data-testid="stElementToolbar"], 
     [data-testid="stDataFrameToolbar"],
     [data-testid="stToolbar"],
@@ -32,7 +32,7 @@ st.markdown("""
     
     [data-testid="stMetricDelta"] svg { fill: red; }
     
-    /* 🔥 修正深色模式下白底白字的問題，改用系統自適應變數 */
+    /* 修正深色模式下白底白字的問題，改用系統自適應變數 */
     [data-testid="stMetric"] { 
         background-color: var(--secondary-background-color); 
         padding: 12px; 
@@ -83,7 +83,6 @@ st.markdown("""
 # --- 2. 系統設定與資料庫 ---
 SETTINGS_FILE = 'settings.json'
 
-# --- 深度校正版 ETF 資料庫 ---
 ETF_FULL_DATABASE = {
     "0050": ["元大台灣50", [1, 7], "0.32%", "0.035%"],
     "0051": ["元大中型100", [11], "0.4%", "0.035%"],
@@ -159,7 +158,7 @@ ETF_FULL_DATABASE = {
 EXTRA_ETFS = {
     "00631L": "00631L 元大台灣50正2", "00673R": "00673R 期元大S&P原油反1", 
     "00632R": "00632R 元大台灣50反1", "009819": "009819 中信數據及電力", 
-    "00712": "00712 復華富時不動產", "00992A": "00992A 主স্তাফ群益科技創新",
+    "00712": "00712 復華富時不動產", "00992A": "00992A 主動群益科技創新",
     "00400A": "00400A 主動國泰動能高息", "00997A": "00997A 主動群益美國增長",
     "00988A": "00988A 主動統一全球創新", "00994A": "00994A 主動第一金台股優",
     "00646": "00646 元大S&P500", "00662": "00662 富邦NASDAQ", 
@@ -205,11 +204,7 @@ def load_settings():
         "etfs": [], 
         "pledge": {"borrowed_amount": 0},
         "watchlist": [],
-        "custom_divs": {
-            "00891.TW": {"v": 1.250, "d": "2026-05-20", "p": "2026-06-15", "s": 0},
-            "00878.TW": {"v": 0.510, "d": "2026-05-18", "p": "2026-06-12", "s": 0},
-            "00982A.TW": {"v": 0.377, "d": "2026-05-21", "p": "2026-06-18", "s": 0}
-        }
+        "custom_divs": {}
     }
     if os.path.exists(SETTINGS_FILE):
         try:
@@ -217,13 +212,6 @@ def load_settings():
                 data = json.load(f)
                 for k, v in default_data.items():
                     if k not in data: data[k] = v
-                
-                for k in default_data['custom_divs']:
-                    if k not in data['custom_divs']:
-                         data['custom_divs'][k] = default_data['custom_divs'][k]
-                    elif 's' not in data['custom_divs'][k]:
-                         data['custom_divs'][k]['s'] = default_data['custom_divs'][k]['s']
-                
                 return data
         except: pass
     return default_data
@@ -888,22 +876,53 @@ if st.session_state.show_div_db:
         
     with st.expander("🛠️ 手動配息覆蓋面板 (修正 Yahoo 資料庫延遲與領息試算)", expanded=False):
         st.caption("💡 投信剛公告但系統尚未抓到時，可直接在下方表格雙擊修改，按下儲存即可全站套用！(代號務必加上 .TW)")
-        st.caption("💸 輸入「持有張數」後，系統會自動幫您計算出此次除息預計領取的總金額！")
+        st.caption("💸 系統已自動帶入您的庫存資料與張數！您可以直接試算除息領取的總金額！")
         
+        # 🔥 全新邏輯：自動抓取庫存清單，並與已儲存的手動配息資料結合
         custom_dict = st.session_state.my_data.get('custom_divs', {})
-        df_custom = pd.DataFrame([
-            {
-                "代號": k, 
-                "每股配息": v.get('v', 0.0), 
-                "除息日": v.get('d', ''), 
-                "發放日": v.get('p', ''),
-                "持有張數": v.get('s', 0.0) 
-            } 
-            for k, v in custom_dict.items()
-        ])
-        
-        if df_custom.empty:
-            df_custom = pd.DataFrame([{"代號": "00878.TW", "每股配息": 0.660, "除息日": "2026-05-18", "發放日": "2026-06-15", "持有張數": 0.0}])
+        display_list = []
+        added_syms = set()
+
+        # 1. 自動列出所有當前庫存 ETF
+        for item in st.session_state.my_data.get('etfs', []):
+            sym = item['symbol']
+            name = item['name']
+            c_info = custom_dict.get(sym, {})
+            
+            # 如果使用者沒有特別儲存覆蓋的張數，就自動帶入目前庫存的張數
+            shares = c_info.get('s', 0.0)
+            if shares == 0.0: 
+                shares = item.get('holdings', 0.0)
+                
+            display_list.append({
+                "代號": sym,
+                "名稱": name,  # 🔥 新增名稱欄位
+                "每股配息": c_info.get('v', 0.0),
+                "除息日": c_info.get('d', ''),
+                "發放日": c_info.get('p', ''),
+                "持有張數": shares
+            })
+            added_syms.add(sym)
+
+        # 2. 列出曾經手動設定，但目前不在庫存中的 ETF（例如自選股）
+        for sym, c_info in custom_dict.items():
+            if sym not in added_syms:
+                clean_sym = sym.replace(".TW", "")
+                name = ETF_NAME_DB.get(clean_sym, "自訂標的")
+                display_list.append({
+                    "代號": sym,
+                    "名稱": name,
+                    "每股配息": c_info.get('v', 0.0),
+                    "除息日": c_info.get('d', ''),
+                    "發放日": c_info.get('p', ''),
+                    "持有張數": c_info.get('s', 0.0)
+                })
+
+        # 如果連一筆都沒有，給個預設空欄位
+        if not display_list:
+            display_list.append({"代號": "00878.TW", "名稱": "國泰永續高股息", "每股配息": 0.0, "除息日": "", "發放日": "", "持有張數": 0.0})
+
+        df_custom = pd.DataFrame(display_list)
             
         edited_custom = st.data_editor(
             df_custom, 
@@ -912,10 +931,11 @@ if st.session_state.show_div_db:
             key="custom_div_editor",
             column_config={
                 "代號": st.column_config.TextColumn("代號 (.TW)"),
+                "名稱": st.column_config.TextColumn("名稱", disabled=True), # 🔥 設定名稱欄位防呆（禁止編輯）
                 "每股配息": st.column_config.NumberColumn("每股配息 ($)", format="%.3f", min_value=0.0),
                 "除息日": st.column_config.TextColumn("除息日 (YYYY-MM-DD)"),
                 "發放日": st.column_config.TextColumn("發放日 (YYYY-MM-DD)"),
-                "持有張數": st.column_config.NumberColumn("持有張數 (選填)", format="%.1f", min_value=0.0)
+                "持有張數": st.column_config.NumberColumn("持有張數", format="%.1f", min_value=0.0)
             }
         )
         
@@ -925,37 +945,46 @@ if st.session_state.show_div_db:
                 sym = str(row['代號']).strip()
                 if sym and sym != "nan":
                     if not sym.endswith(".TW"): sym += ".TW"
-                    new_db[sym] = {
-                        "v": float(row['每股配息']) if pd.notna(row['每股配息']) else 0.0,
-                        "d": str(row['除息日']) if pd.notna(row['除息日']) else "",
-                        "p": str(row['發放日']) if pd.notna(row['發放日']) else "",
-                        "s": float(row['持有張數']) if pd.notna(row['持有張數']) else 0.0
-                    }
+                    
+                    v_val = float(row['每股配息']) if pd.notna(row['每股配息']) else 0.0
+                    d_val = str(row['除息日']) if pd.notna(row['除息日']) else ""
+                    p_val = str(row['發放日']) if pd.notna(row['發放日']) else ""
+                    s_val = float(row['持有張數']) if pd.notna(row['持有張數']) else 0.0
+                    
+                    # 只有當設定了大於 0 的配息或張數時，才真的寫入覆蓋資料庫
+                    if v_val > 0 or s_val > 0:
+                        new_db[sym] = {
+                            "v": v_val,
+                            "d": d_val,
+                            "p": p_val,
+                            "s": s_val
+                        }
             st.session_state.my_data['custom_divs'] = new_db
             save_to_json(st.session_state.my_data)
             st.cache_data.clear() 
             st.session_state.update_success = "手動覆蓋資料已儲存並成功套用！"
             st.rerun()
             
-        # --- 新增的領息試算結果區塊 ---
+        # --- 領息試算結果區塊 ---
         st.markdown("##### 💸 此次手動配息預估領息結果")
         calc_results = []
         for _, row in edited_custom.iterrows():
             sym = str(row['代號']).strip()
+            name = str(row['名稱']).strip()
             if sym and sym != "nan":
                 div_val = float(row['每股配息']) if pd.notna(row['每股配息']) else 0.0
                 shares = float(row['持有張數']) if pd.notna(row['持有張數']) else 0.0
                 if div_val > 0 and shares > 0:
                     total_div = div_val * shares * 1000
                     calc_results.append({
-                        "代號": sym,
+                        "標的": f"{sym} {name}",
                         "預估領息總額": f"${total_div:,.0f}"
                     })
         
         if calc_results:
             st.dataframe(pd.DataFrame(calc_results), hide_index=True, use_container_width=True)
         else:
-            st.info("請於上方表格輸入大於 0 的「每股配息」與「持有張數」，系統將自動為您試算。")
+            st.info("請於上方表格輸入大於 0 的「每股配息」，系統將根據您的張數自動為您試算。")
 
     st.write("---")
 

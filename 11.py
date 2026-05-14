@@ -3,8 +3,6 @@ import yfinance as yf
 import pandas as pd
 import json
 import os
-import urllib.request
-import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 import time
 import altair as alt
@@ -41,12 +39,6 @@ st.markdown("""
         border-radius: 10px; 
         box-shadow: 1px 1px 4px rgba(0,0,0,0.05);
     }
-    
-    .news-box { background-color: #f0f7ff; border-left: 6px solid #4a90e2; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 1px 1px 4px rgba(0,0,0,0.05); }
-    .news-title { font-size: 20px; font-weight: bold; color: #1e3c72; margin-bottom: 15px; display: flex; align-items: center; }
-    .news-item { font-size: 16px; color: #333; margin-bottom: 12px; line-height: 1.5; font-weight: 500;}
-    .news-item a { text-decoration: none; color: #1e3c72; transition: color 0.2s;}
-    .news-item a:hover { text-decoration: underline; color: #d32f2f; }
 
     /* 三拼損益與領息橫列大看板樣式 */
     .triple-box { background-color: #ffffff; border-radius: 12px; border: 1px solid #e0e0e0; padding: 15px; display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center; margin-bottom: 20px; box-shadow: 2px 2px 8px rgba(0,0,0,0.04); gap: 10px; }
@@ -737,45 +729,9 @@ def fetch_data(etf_list, custom_divs):
 
 df, df_tech, g_mkt, g_cost, g_div, g_today_pnl, price_alerts, monthly_calendar = fetch_data(st.session_state.my_data['etfs'], st.session_state.my_data.get('custom_divs', {}))
 
-# --- 📡 抓取 ETF 焦點新聞 ---
-@st.cache_data(ttl=3600)
-def fetch_etf_news():
-    news_list = []
-    today_str = datetime.now().strftime("%m/%d")
-    try:
-        url = "https://news.google.com/rss/search?q=%E5%8F%B0%E7%81%A3+ETF+%E6%96%B0%E4%B8%8A%E5%B8%82+OR+%E9%85%8D%E6%81%AF+OR+%E6%88%90%E5%88%86%E8%82%A1&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=3) as response:
-            root = ET.fromstring(response.read())
-            for item in root.findall('.//item')[:4]:
-                title = item.find('title').text
-                if " - " in title: title = title.rsplit(" - ", 1)[0]
-                link = item.find('link').text
-                news_list.append({"title": f"{today_str} {title}", "link": link})
-    except Exception: pass
-    
-    if not news_list:
-        news_list = [
-            {"title": f"{today_str} 盤前觀察：半導體龍頭動向 (影響 00927 走勢)", "link": "#"},
-            {"title": f"{today_str} 高股息標的篩選：關注 00878、0056 成分股調整", "link": "#"},
-            {"title": f"{today_str} 焦點情報：多檔新上市主動式 ETF 展開募集與掛牌", "link": "#"},
-            {"title": f"{today_str} 大盤壓力測試：正二 (00631L) 槓桿風險控管建議", "link": "#"}
-        ]
-    return news_list
-
 # --- 5. 介面呈現 ---
 st.title("📈 實戰資產戰情室")
 st.caption(f"最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-# ==========================================
-# 🔥 新聞情報看板 🔥
-# ==========================================
-news_data = fetch_etf_news()
-news_html = "<div class='news-box'><div class='news-title'>📰 今日財經焦點</div>"
-for news in news_data:
-    news_html += f"<div class='news-item'>👉 📍 <a href='{news['link']}' target='_blank'>{news['title']}</a></div>"
-news_html += "</div>"
-st.markdown(news_html, unsafe_allow_html=True)
 
 if price_alerts:
     for alert in price_alerts:
@@ -1460,46 +1416,6 @@ with bot_c2:
                     st.button(f"🗑️ 刪除 {item['name']}", key=f"del_{i}", on_click=delete_etf, args=(i,), use_container_width=True)
 
             st.button("💾 儲存所有修改", use_container_width=True, type="primary", on_click=save_edits)
-
-st.write("---")
-st.markdown("### 📈 持股歷史股價趨勢 (近 30 日)")
-
-current_etfs = [item['symbol'] for item in st.session_state.my_data.get('etfs', [])]
-
-if current_etfs:
-    with st.spinner("正在繪製高精度股價戰報..."):
-        try:
-            price_history = yf.download(current_etfs, period="1mo")['Close']
-            
-            if len(current_etfs) == 1:
-                price_history = price_history.to_frame()
-                price_history.columns = [st.session_state.my_data['etfs'][0]['name']]
-            else:
-                name_map = {item['symbol']: item['name'] for item in st.session_state.my_data['etfs']}
-                price_history = price_history.rename(columns=name_map)
-            
-            df_chart = price_history.reset_index()
-            date_col = df_chart.columns[0]
-            df_melted = df_chart.melt(id_vars=[date_col], var_name='ETF', value_name='Price')
-
-            chart = alt.Chart(df_melted).mark_line().encode(
-                x=alt.X(f'{date_col}:T', axis=alt.Axis(format='%d日', title=None, grid=False)),
-                y=alt.Y('Price:Q', scale=alt.Scale(zero=False), axis=alt.Axis(title=None, labelFontSize=10, tickMinStep=1, tickCount=40, gridColor='#f0f2f6')),
-                color=alt.Color('ETF:N', legend=alt.Legend(title=None, orient="bottom")),
-                tooltip=[
-                    alt.Tooltip(f'{date_col}:T', format='%Y/%m/%d', title='日期'),
-                    alt.Tooltip('ETF:N', title='標的'),
-                    alt.Tooltip('Price:Q', format='.2f', title='收盤價')
-                ]
-            ).properties(height=450).interactive()
-
-            st.altair_chart(chart, use_container_width=True)
-            st.caption("數據來源：Yahoo Finance (近一個月每日收盤價趨勢)")
-        except Exception as e:
-            st.error(f"圖表產生失敗：{e}")
-            st.info("提示：請確認網路連線正常或 ETF 代碼是否正確。")
-else:
-    st.info("目前庫存中沒有標的。請由上方「標的管理」面板新增您的愛股！")
 
 if st.session_state.auto_refresh_mode == "✅ USE (開啟)":
     time.sleep(5)

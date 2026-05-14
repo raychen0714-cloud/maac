@@ -1084,7 +1084,6 @@ if st.session_state.show_daily_price:
     st.markdown("#### 🗓️ 庫存 ETF 每日統計數據 (近 30 個交易日)")
     
     port_map = {item['symbol']: f"💼 {item['name']}" for item in st.session_state.my_data.get('etfs', [])}
-    port_holdings = {f"💼 {item['name']}": item['holdings'] * 1000 for item in st.session_state.my_data.get('etfs', [])}
     current_symbols = list(port_map.keys())
     
     if current_symbols:
@@ -1116,12 +1115,13 @@ if st.session_state.show_daily_price:
                     except:
                         pass
                         
-                # 修正 Pandas 報錯: 改用新版直接呼叫 ffill()
+                # 補正空值
                 hist_data = hist_data.ffill()
                 
+                # 計算與前一日的漲跌價差
                 diff_data = hist_data.diff()
                 
-                # 修改為 30 個交易日
+                # 取近 30 個交易日
                 hist_data = hist_data.tail(30)
                 diff_data = diff_data.tail(30)
                 
@@ -1134,62 +1134,39 @@ if st.session_state.show_daily_price:
                 valid_port_names = [name for name in port_map.values() if name in h_display.index]
                 
                 if valid_port_names:
-                    st.markdown("##### 💰 每日單日賺賠金額 (庫存)")
-                    pnl_df = pd.DataFrame(index=valid_port_names, columns=h_display.columns)
+                    st.markdown("##### 📉 每日收盤價與漲跌 (庫存)")
                     
-                    daily_totals = {col: 0.0 for col in h_display.columns}
+                    # 建立結合「收盤價」與「漲跌」的新 DataFrame
+                    combined_df = pd.DataFrame(index=valid_port_names, columns=h_display.columns)
                     
                     for etf_name in valid_port_names:
-                        shares = port_holdings.get(etf_name, 0)
                         for col in h_display.columns:
+                            price = h_display.loc[etf_name, col]
                             diff = d_display.loc[etf_name, col]
-                            if pd.isna(diff): 
-                                pnl_df.loc[etf_name, col] = "-"
+                            
+                            if pd.isna(price) or pd.isna(diff):
+                                combined_df.loc[etf_name, col] = "-"
                             else:
-                                val = diff * shares
-                                pnl_df.loc[etf_name, col] = f"{'+' if val > 0 else ''}{val:,.0f}"
-                                daily_totals[col] += val
+                                # 格式化：若上漲加 '+'，若是 0 則不顯示符號
+                                sign = "+" if diff > 0 else ""
+                                combined_df.loc[etf_name, col] = f"{price:.2f} ({sign}{diff:.2f})"
 
-                    total_row = []
-                    for col in h_display.columns:
-                        v = daily_totals[col]
-                        total_row.append(f"{'+' if v > 0 else ''}{v:,.0f}")
-                    
-                    pnl_df.loc['📈 每日合計'] = total_row
-
-                    def color_pnl(df_to_style):
+                    # 根據字串內的 "(+" 或 "(-" 來上色
+                    def color_price_diff(df_to_style):
                         css = pd.DataFrame('', index=df_to_style.index, columns=df_to_style.columns)
                         for idx in df_to_style.index:
                             for col in df_to_style.columns:
-                                val_str = str(df_to_style.loc[idx, col]).replace(',', '')
-                                if val_str == '-' or val_str == 'nan':
-                                    continue
-                                try:
-                                    val = float(val_str)
-                                    if val > 0:
-                                        css.loc[idx, col] = 'color: #d32f2f; font-weight: bold;'
-                                        if idx == '📈 每日合計':
-                                            css.loc[idx, col] += ' background-color: #ffebee; font-size: 16px;'
-                                    elif val < 0:
-                                        css.loc[idx, col] = 'color: #388e3c; font-weight: bold;'
-                                        if idx == '📈 每日合計':
-                                            css.loc[idx, col] += ' background-color: #e8f5e9; font-size: 16px;'
-                                    else:
-                                        if idx == '📈 每日合計':
-                                            css.loc[idx, col] = 'font-weight: bold; background-color: #f5f5f5; font-size: 16px;'
-                                except:
-                                    pass
+                                val_str = str(df_to_style.loc[idx, col])
+                                if "(+" in val_str:
+                                    css.loc[idx, col] = 'color: #d32f2f; font-weight: bold;'
+                                elif "(-" in val_str:
+                                    css.loc[idx, col] = 'color: #388e3c; font-weight: bold;'
+                                elif "-" not in val_str: # 平盤
+                                    css.loc[idx, col] = 'color: #555;'
                         return css
 
-                    st.dataframe(pnl_df.style.apply(color_pnl, axis=None), use_container_width=True)
-
-                    st.markdown("##### 📉 每日收盤價 (庫存)")
-                    price_df = h_display.loc[valid_port_names].copy()
-                    for col in price_df.columns:
-                        price_df[col] = price_df[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "-")
-                    
-                    st.dataframe(price_df, use_container_width=True)
-                    st.caption("💡 提示：數值紅色代表漲/賺，綠色代表跌/賠。最下方已有當日總賺賠統計！系統已啟動強效補正機制，確保不再有缺漏。")
+                    st.dataframe(combined_df.style.apply(color_price_diff, axis=None), use_container_width=True)
+                    st.caption("💡 提示：數值格式為 `收盤價 (漲跌)`。紅色代表上漲，綠色代表下跌。系統已啟動強效補正機制，確保不再有缺漏。")
                 else:
                     st.info("⚠️ 目前無有效庫存數據。")
             except Exception as e:

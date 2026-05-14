@@ -6,12 +6,6 @@
             "holdings": 8.538,
             "cost": 37.58,
             "pledged_shares": 0.0,
-            "manual_price": 0.0,
-            "manual_div": 0.0,
-            "manual_freq": "",
-            "manual_months": "",
-            "manual_ex_date": "",
-            "manual_pay_date": "",
             "alert_high": 0.0,
             "alert_low": 0.0
         },
@@ -21,12 +15,6 @@
             "holdings": 3.0,
             "cost": 41.45,
             "pledged_shares": 0.0,
-            "manual_price": 0.0,
-            "manual_div": 0.0,
-            "manual_freq": "",
-            "manual_months": "",
-            "manual_ex_date": "",
-            "manual_pay_date": "",
             "alert_high": 0.0,
             "alert_low": 0.0
         },
@@ -36,12 +24,6 @@
             "holdings": 5.0,
             "cost": 27.01,
             "pledged_shares": 0.0,
-            "manual_price": 0.0,
-            "manual_div": 0.0,
-            "manual_freq": "",
-            "manual_months": "",
-            "manual_ex_date": "",
-            "manual_pay_date": "",
             "alert_high": 0.0,
             "alert_low": 0.0
         },
@@ -51,12 +33,6 @@
             "holdings": 5.0,
             "cost": 33.67,
             "pledged_shares": 0.0,
-            "manual_price": 0.0,
-            "manual_div": 0.0,
-            "manual_freq": "",
-            "manual_months": "",
-            "manual_ex_date": "",
-            "manual_pay_date": "",
             "alert_high": 0.0,
             "alert_low": 0.0
         },
@@ -66,12 +42,6 @@
             "holdings": 13.0,
             "cost": 9.88,
             "pledged_shares": 0.0,
-            "manual_price": 0.0,
-            "manual_div": 0.0,
-            "manual_freq": "",
-            "manual_months": "",
-            "manual_ex_date": "",
-            "manual_pay_date": "",
             "alert_high": 0.0,
             "alert_low": 0.0
         },
@@ -81,12 +51,6 @@
             "holdings": 2.274,
             "cost": 17.91,
             "pledged_shares": 0.0,
-            "manual_price": 0.0,
-            "manual_div": 0.0,
-            "manual_freq": "",
-            "manual_months": "",
-            "manual_ex_date": "",
-            "manual_pay_date": "",
             "alert_high": 0.0,
             "alert_low": 0.0
         }
@@ -94,5 +58,6 @@
     "pledge": {
         "borrowed_amount": 0
     },
-    "watchlist": []
+    "watchlist": [],
+    "custom_divs": {}
 }

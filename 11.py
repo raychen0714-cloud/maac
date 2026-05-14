@@ -85,15 +85,34 @@ ETF_CONSTITUENTS_DB = {
 }
 
 def load_settings():
-    default_data = {"etfs": [], "pledge": {"borrowed_amount": 0}, "watchlist": [], "custom_divs": {}}
+    # 🔥 終極無敵備份：將你的真實資料直接寫死在程式碼裡
+    default_data = {
+        "etfs": [
+            {"symbol": "0050.TW", "name": "元大台灣50", "holdings": 8.538, "cost": 37.58, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
+            {"symbol": "0056.TW", "name": "元大高股息", "holdings": 3.0, "cost": 41.45, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
+            {"symbol": "00878.TW", "name": "國泰永續ESG高股息", "holdings": 5.0, "cost": 27.01, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
+            {"symbol": "00891.TW", "name": "中信關鍵半導體", "holdings": 5.0, "cost": 33.67, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
+            {"symbol": "00940.TW", "name": "元大臺灣價值高息", "holdings": 13.0, "cost": 9.88, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
+            {"symbol": "2887.TW", "name": "台新新光金", "holdings": 2.274, "cost": 17.91, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0}
+        ],
+        "pledge": {"borrowed_amount": 0},
+        "watchlist": [],
+        "custom_divs": {}
+    }
+    
+    # 強化防呆機制：如果檔案壞掉、空白、或編碼錯誤，一律直接載入專屬預設值
     if os.path.exists(SETTINGS_FILE):
         try:
             with open(SETTINGS_FILE, 'r', encoding='utf-8') as f: 
-                data = json.load(f)
+                content = f.read().strip()
+                if not content: return default_data
+                data = json.loads(content)
                 for k, v in default_data.items():
                     if k not in data: data[k] = v
                 return data
-        except: pass
+        except: 
+            pass # 發生 JSONDecodeError 直接跳過，不當機！
+            
     return default_data
 
 def save_to_json(data):
@@ -150,9 +169,9 @@ for key in ['show_calendar', 'show_div_db', 'show_tech', 'show_holdings', 'show_
     if key not in st.session_state: st.session_state[key] = False 
 def toggle_state(key): st.session_state[key] = not st.session_state[key]
 
-# --- 4. 核心數據抓取 (🔥鐵壁防護版：不怕 Yahoo 當機) ---
+# --- 4. 核心數據抓取 ---
 @st.cache_data(ttl=10800) 
-def fetch_taiwan_upcoming_dividends(): return {} # 簡化防報錯，以 Yahoo 歷史與手動為主
+def fetch_taiwan_upcoming_dividends(): return {} 
 
 @st.cache_data(ttl=43200)
 def get_div_data(symbol, custom_div_info=None):
@@ -180,12 +199,11 @@ def fetch_data(etf_list, custom_divs):
     monthly_calendar = {i: {"amount": 0, "sources": []} for i in range(1, 13)} 
 
     for item in etf_list:
-        # 🔥 鐵壁防禦：預設賦予安全值，確保股票永遠不會消失
-        curr_p = item['cost'] if item['cost'] > 0 else 10.0 # 若均價為0則給個底價防報錯
+        curr_p = item['cost'] if item['cost'] > 0 else 10.0 
         prev_close, day_high, day_low, vol, year_high, year_low = curr_p, curr_p, curr_p, 0, curr_p, curr_p
         cap_str = "系統無資料"
         
-        try: # 嘗試抓取即時資料
+        try: 
             tk = yf.Ticker(item['symbol'])
             inf = tk.fast_info
             curr_p = inf.get('lastPrice', curr_p)
@@ -193,7 +211,7 @@ def fetch_data(etf_list, custom_divs):
             day_high = inf.get('dayHigh', curr_p)
             day_low = inf.get('dayLow', curr_p)
             vol = inf.get('lastVolume', 0)
-        except: pass # 若 Yahoo 當機，就用預設值 (item['cost'])，不影響畫面呈現
+        except: pass 
 
         status_light = "🔴" if curr_p > prev_close else "🟢" if curr_p < prev_close else "⚪"
         display_name = f"{status_light} {item['name']}"
@@ -244,7 +262,7 @@ df, df_tech, g_mkt, g_cost, g_div, g_today_pnl, price_alerts, monthly_calendar =
 
 # --- 5. 介面呈現 PRO ---
 st.title("📈 實戰資產戰情室 PRO")
-st.caption(f"最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (鐵壁防禦機制已啟動)")
+st.caption(f"最後更新：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (已啟動自動備份還原機制)")
 
 total_net_profit = df['損益'].sum() if not df.empty else 0
 r_total = (total_net_profit / g_cost * 100) if g_cost != 0 else 0
@@ -298,7 +316,7 @@ if st.session_state.show_calendar:
     st.write("---")
 
 if st.session_state.show_div_db:
-    with st.expander("🛠️ 手動配息覆蓋面板 (修正 Yahoo 延遲)", expanded=True):
+    with st.expander("🛠️ 手動配息覆蓋面板", expanded=True):
         custom_dict = st.session_state.my_data.get('custom_divs', {})
         display_list = [{"代號": i['symbol'], "名稱": i['name'], "每股配息": custom_dict.get(i['symbol'], {}).get('v', 0.0), "持有張數": i['holdings']} for i in st.session_state.my_data.get('etfs', [])]
         if display_list:

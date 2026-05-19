@@ -85,19 +85,24 @@ ETF_CONSTITUENTS_DB = {
 }
 
 def load_settings():
-    # 🔥 終極無敵備份：將你的真實資料直接寫死在程式碼裡
-    default_data = {
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, 'r', encoding='utf-8') as f: return json.load(f)
+        except: pass
+    
+    # 💡 這裡已經替換為你朋友的專屬庫存與持股成本
+    return {
         "etfs": [
-            {"symbol": "0050.TW", "name": "元大台灣50", "holdings": 8.538, "cost": 37.58, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
-            {"symbol": "0056.TW", "name": "元大高股息", "holdings": 3.0, "cost": 41.45, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
-            {"symbol": "00878.TW", "name": "國泰永續ESG高股息", "holdings": 5.0, "cost": 27.01, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
-            {"symbol": "00891.TW", "name": "中信關鍵半導體", "holdings": 5.0, "cost": 33.67, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
-            {"symbol": "00940.TW", "name": "元大臺灣價值高息", "holdings": 13.0, "cost": 9.88, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0},
-            {"symbol": "2887.TW", "name": "台新新光金", "holdings": 2.274, "cost": 17.91, "pledged_shares": 0.0, "is_pledged": False, "alert_high": 0.0, "alert_low": 0.0}
-        ],
+            {"symbol": "0050.TW", "name": "0050 元大台灣50", "holdings": 3.0, "cost": 135.50, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0, "ex_div_shares_custom": 3.0},
+            {"symbol": "0056.TW", "name": "0056 元大高股息", "holdings": 10.0, "cost": 36.80, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0, "ex_div_shares_custom": 10.0},
+            {"symbol": "00878.TW", "name": "00878 國泰永續高股息", "holdings": 15.0, "cost": 22.10, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0, "ex_div_shares_custom": 15.0},
+            {"symbol": "00919.TW", "name": "00919 群益台灣精選高息", "holdings": 25.0, "cost": 25.20, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0, "ex_div_shares_custom": 25.0},
+            {"symbol": "2330.TW", "name": "2330 台積電", "holdings": 1.0, "cost": 780.00, "alert_high": 0.0, "alert_low": 0.0, "pledged_shares": 0.0, "ex_div_shares_custom": 1.0}
+        ], 
         "pledge": {"borrowed_amount": 0},
         "watchlist": [],
-        "custom_divs": {}
+        "total_received_divs": 0.0,          # 預設已領取配息歸零
+        "view_month": datetime.today().month # 預設顯示當前月份
     }
     
     # 強化防呆機制：如果檔案壞掉、空白、或編碼錯誤，一律直接載入專屬預設值

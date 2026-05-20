@@ -580,11 +580,15 @@ def fetch_data(etf_list):
             today_diff_str = f"+{today_diff:.2f}" if today_diff >= 0 else f"{today_diff:.2f}"
             vol_wan_str = f"{vol / 10000000:.2f} 萬" if vol > 0 else "無資料"
 
+            # 🚀 新增：將剛剛算好的總損益 (profit) 格式化成帶有正負號的字串
+            total_pnl_str = f"+${profit:,.0f}" if profit >= 0 else f"-${abs(profit):,.0f}"
+
             tech_results.append({
-                "ETF 名仙": display_name,
+                "ETF 名稱": display_name,  # 順便修復了原本的錯字
                 "股票張數": item['holdings'], 
                 "現價": round(curr_p, 2),
                 "均價": item['cost'],
+                "總損益": total_pnl_str,    # 👈 就是這一行！成功加入總損益
                 "今日損益": today_pnl_str,
                 "今日漲跌(點)": today_diff_str,
                 "今日漲跌幅": today_pct_str, 

@@ -1175,7 +1175,7 @@ if st.session_state.show_history:
                 hist_data = fetch_daily_history_masterpiece(selected_symbol, lookback_days)
                 
                 if not hist_data.empty:
-                    html_cards = "<div style='display: flex; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; gap: 10px; padding: 10px 5px 15px 5px; -webkit-overflow-scrolling: touch;'>"
+                    html_cards = "<div style='display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 5px 15px 5px;'>"
                     week_dict = {0: "一", 1: "二", 2: "三", 3: "四", 4: "五", 5: "六", 6: "日"}
                     
                     for date, row in hist_data.iloc[::-1].iterrows():

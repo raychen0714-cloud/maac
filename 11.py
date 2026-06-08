@@ -465,13 +465,17 @@ if not final_data.empty:
         styled_df = display_df.style.applymap(color_tw_stock, subset=['📈 漲跌'])
     
     # 3. 顯示帶有顏色的 PRO 試算表 (🔥🔥🔥 解除所有寬度鎖定版 🔥🔥🔥)
+    # 3. 顯示帶有顏色的 PRO 試算表 (🔥🔥🔥 增加表格高度版 🔥🔥🔥)
     edited_df = st.data_editor(
         styled_df,
         key="portfolio_editor", 
         hide_index=True,
         use_container_width=True, 
+        height=800,  # 🔥🔥🔥 新增這一行：設定表格高度為 800 像素，把下面的空白填滿！
         disabled=["標的", "現價", "📈 漲跌", "📊 官方籌碼", "趨勢格局", "🤖 系統建議"], 
         column_config={
+            "📌 持有": st.column_config.CheckboxColumn("📌 持有"),
+            # ... 下面的設定都維持你原本的樣子不用動 ...
             "📌 持有": st.column_config.CheckboxColumn("📌 持有"),
             "原始代號": None, 
             "標的": st.column_config.TextColumn("標的"),

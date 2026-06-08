@@ -16,8 +16,11 @@ DATA_FILE = os.path.join(BASE_DIR, "user_data.json")
 
 def load_data():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            pass
     return {
         "total_div": 0.0,
         "max_price": 1000,
@@ -136,7 +139,7 @@ CUSTOM_NAME_MAP = {
     "4958.TW": "臻鼎-KY",
     "3037.TW": "四欣技",
     "3481.TW": "群創",
-    "2887.TW": "台新新光金",
+    "2887.TW": "台新金",
     "00631L.TW": "元大台灣50正2",
     "00685L.TW": "群益台股正2"
 }
@@ -182,11 +185,11 @@ max_price = st.sidebar.number_input("3. 設定最高價位 (元)", value=current
 if max_price != current_max:
     st.session_state.app_data["max_price"] = max_price
     save_data(st.session_state.app_data)
+    st.rerun()  
 
 st.sidebar.markdown("---")
 only_manual = st.sidebar.checkbox("🎯 只看自選標的 (隱藏系統清單)", value=False)
 
-# 🔥🔥🔥 修正：手動清單綁定記憶庫，保證不消失 🔥🔥🔥
 saved_tickers = st.session_state.app_data.get("manual_tickers", "878, 919, 918, 0056, 927, 0052, 2409, 6116")
 manual_tickers_str = st.sidebar.text_input(
     "🔍 4. 手動新增觀察標的", 
@@ -200,7 +203,7 @@ if manual_tickers_str != saved_tickers:
     st.rerun()
 
 # --- 🧠 3. 核心運算引擎 ---
-@st.cache_data(ttl=60) 
+@st.cache_data(ttl=30)  
 def fetch_and_analyze(categories, universe_dict, price_limit, current_type, manual_input, only_manual_flag):
     tickers_to_fetch = {}
     
@@ -265,18 +268,29 @@ def fetch_and_analyze(categories, universe_dict, price_limit, current_type, manu
             if len(hist) < 10 and is_manual: continue
             elif len(hist) < 60 and not is_manual: continue
             
+            close_px = np.nan
             try:
                 close_px = float(tk.fast_info.last_price)
-                if np.isnan(close_px) or close_px <= 0: close_px = float(hist['Close'].iloc[-1])
-            except: close_px = float(hist['Close'].iloc[-1])
+            except:
+                pass
+                
+            if np.isnan(close_px) or close_px <= 0:
+                try:
+                    today_live = tk.history(period="1d", interval="1m")
+                    if not today_live.empty:
+                        close_px = float(today_live['Close'].iloc[-1])
+                except:
+                    pass
+            
+            if np.isnan(close_px) or close_px <= 0:
+                close_px = float(hist['Close'].iloc[-1])
                 
             if not is_manual and close_px > price_limit: continue
             
-            # 🔥🔥🔥 新增：精準計算今日漲跌幅與漲跌點數 🔥🔥🔥
             try:
                 prev_close = float(hist['Close'].iloc[-2])
-                price_change_abs = close_px - prev_close # 計算漲跌幾塊錢
-                price_change_pct = (price_change_abs / prev_close) * 100 # 計算漲跌幅
+                price_change_abs = close_px - prev_close 
+                price_change_pct = (price_change_abs / prev_close) * 100 
                 
                 if price_change_abs > 0:
                     change_str = f"🔺 +{price_change_pct:.2f}% / +{price_change_abs:.2f}"
@@ -352,7 +366,7 @@ def fetch_and_analyze(categories, universe_dict, price_limit, current_type, manu
                 "代號": code_only, 
                 "名稱": name,
                 "現價": round(close_px, 2), 
-                "📈 漲跌": change_str, # 🔥 寫入漲跌幅欄位
+                "📈 漲跌": change_str, 
                 "成交量(張)": int(vol),
                 "趨勢格局": trend_status,  
                 "📊 官方籌碼": current_chip,  
@@ -448,78 +462,71 @@ if not final_data.empty:
     final_data['📌 持有'] = final_data['原始代號'].apply(lambda x: x in held_list)
     final_data['標的'] = final_data['代號'].astype(str) + " " + final_data['名稱']
     
-    # 🔥🔥🔥 修正：優化欄位，加入漲跌幅「台股專屬」紅綠顏色顯示 🔥🔥🔥
     display_df = final_data[['📌 持有', '原始代號', '標的', '現價', '📈 漲跌', '成交量(張)', '📊 官方籌碼', '趨勢格局', '🤖 系統建議', '💰 最新配息']]
     display_df = display_df.sort_values(by=["📌 持有", "成交量(張)"], ascending=[False, False]).reset_index(drop=True)
     
-    # 1. 建立台股專屬顏色邏輯 (紅漲綠跌)
     def color_tw_stock(val):
         if isinstance(val, str):
             if '🔺' in val:
-                return 'color: #ff4b4b; font-weight: bold;' # Streamlit 專屬紅色 + 粗體
+                return 'color: #ff4b4b; font-weight: bold;' 
             elif '🔻' in val:
-                return 'color: #09ab3b; font-weight: bold;' # Streamlit 專屬綠色 + 粗體
+                return 'color: #09ab3b; font-weight: bold;' 
         return ''
 
-    # 2. 將顏色樣式套用到 DataFrame 的「📈 漲跌」這個欄位
     if hasattr(display_df.style, "map"):
         styled_df = display_df.style.map(color_tw_stock, subset=['📈 漲跌'])
     else:
         styled_df = display_df.style.applymap(color_tw_stock, subset=['📈 漲跌'])
     
-    # 3. 顯示帶有顏色的 PRO 試算表 (🔥🔥🔥 解除所有寬度鎖定版 🔥🔥🔥)
-    # 3. 顯示帶有顏色的 PRO 試算表 (🔥🔥🔥 增加表格高度版 🔥🔥🔥)
+    # 🔥🔥🔥 終極渲染與強制比對存檔模組 🔥🔥🔥
     edited_df = st.data_editor(
         styled_df,
         key="portfolio_editor", 
         hide_index=True,
-        use_container_width=True, 
-        height=800,  # 🔥🔥🔥 新增這一行：設定表格高度為 800 像素，把下面的空白填滿！
+        use_container_width=False,  # 不強制填滿，保護字體不被吃掉
+        height=800,                 # 表格拉長，填滿空白
         disabled=["標的", "現價", "📈 漲跌", "📊 官方籌碼", "趨勢格局", "🤖 系統建議"], 
         column_config={
-            "📌 持有": st.column_config.CheckboxColumn("📌 持有"),
-            # ... 下面的設定都維持你原本的樣子不用動 ...
-            "📌 持有": st.column_config.CheckboxColumn("📌 持有"),
+            "📌 持有": st.column_config.CheckboxColumn("📌 持有", width="small"),
             "原始代號": None, 
-            "標的": st.column_config.TextColumn("標的"),
-            "現價": st.column_config.NumberColumn("現價", format="$%.2f"),
-            "📈 漲跌": st.column_config.TextColumn("📈 漲跌"), 
-            "成交量(張)": st.column_config.NumberColumn("成交量"),
-            "📊 官方籌碼": st.column_config.TextColumn("📊 籌碼"),
-            "趨勢格局": st.column_config.TextColumn("趨勢"), 
-            "🤖 系統建議": st.column_config.TextColumn("🤖 建議"), 
-            "💰 最新配息": st.column_config.TextColumn("💰 配息")
+            "標的": st.column_config.TextColumn("標的", width="medium"),
+            "現價": st.column_config.NumberColumn("現價", format="$%.2f", width="small"),
+            "📈 漲跌": st.column_config.TextColumn("📈 漲跌", width="medium"), 
+            "成交量(張)": st.column_config.NumberColumn("成交量", width="small"),
+            "📊 官方籌碼": st.column_config.TextColumn("📊 籌碼", width="small"),
+            "趨勢格局": st.column_config.TextColumn("趨勢", width="small"), 
+            "🤖 系統建議": st.column_config.TextColumn("🤖 建議", width="medium"), 
+            "💰 最新配息": st.column_config.TextColumn("💰 配息", width="large")
         }
     )
 
-    if "portfolio_editor" in st.session_state:
-        edited_rows = st.session_state["portfolio_editor"].get("edited_rows", {})
-        if edited_rows:
-            has_changes = False
-            current_held = st.session_state.app_data.get("held_stocks", [])
-            
-            for str_idx, changes in edited_rows.items():
-                row_idx = int(str_idx)
-                ticker_key = display_df.iloc[row_idx]['原始代號']
-                
-                if "📌 持有" in changes:
-                    is_checked = changes["📌 持有"]
-                    if is_checked and (ticker_key not in current_held):
-                        current_held.append(ticker_key)
-                    elif (not is_checked) and (ticker_key in current_held):
-                        current_held.remove(ticker_key)
-                    st.session_state.app_data["held_stocks"] = current_held
-                    has_changes = True
-                
-                if "💰 最新配息" in changes:
-                    new_val = changes["💰 最新配息"]
-                    st.session_state.app_data["custom_div_map"][ticker_key] = new_val
-                    has_changes = True
-                    
-            if has_changes:
-                save_data(st.session_state.app_data)       
-                st.session_state.show_save_success = True  
-                st.rerun()                                 
+    # 暴力比對迴圈：一有修改，立刻存檔！
+    has_changes = False
+    current_held = st.session_state.app_data.get("held_stocks", [])
+
+    for i in range(len(display_df)):
+        ticker_key = display_df.iloc[i]['原始代號']
+        
+        old_held = bool(display_df.iloc[i]['📌 持有'])
+        new_held = bool(edited_df.iloc[i]['📌 持有'])
+        if old_held != new_held:
+            if new_held and (ticker_key not in current_held):
+                current_held.append(ticker_key)
+            elif (not new_held) and (ticker_key in current_held):
+                current_held.remove(ticker_key)
+            has_changes = True
+
+        old_div = str(display_df.iloc[i]['💰 最新配息'])
+        new_div = str(edited_df.iloc[i]['💰 最新配息'])
+        if old_div != new_div:
+            st.session_state.app_data["custom_div_map"][ticker_key] = new_div
+            has_changes = True
+
+    if has_changes:
+        st.session_state.app_data["held_stocks"] = current_held
+        save_data(st.session_state.app_data)       
+        st.session_state.show_save_success = True  
+        st.rerun()
 
 else:
     st.info("請確認手動輸入代號後是否已按下鍵盤上的『確認/Enter』鍵，或放寬篩選產業。")

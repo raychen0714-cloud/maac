@@ -478,25 +478,25 @@ if not final_data.empty:
     else:
         styled_df = display_df.style.applymap(color_tw_stock, subset=['📈 漲跌'])
     
-    # 🔥🔥🔥 最終黃金排版：解除固定模具，讓系統「看字數自動縮放」，不切字、不留白 🔥🔥🔥
+    # 🔥🔥🔥 完美平衡鎖死版：拔除膨脹的 large，讓所有欄位乖乖待在螢幕內 🔥🔥🔥
     edited_df = st.data_editor(
         styled_df,
         key="portfolio_editor", 
         hide_index=True,
-        use_container_width=False,  # 關鍵 1：不強制填滿螢幕，保持緊湊
+        use_container_width=True,   # 🔥 關鍵 1：開啟填滿螢幕，強迫表格不能超出你的視窗邊界
         height=800,                 
         disabled=["標的", "現價", "📈 漲跌", "📊 官方籌碼", "趨勢格局", "🤖 系統建議"], 
         column_config={
-            "📌 持有": st.column_config.CheckboxColumn("📌 持有", width="small"), # 只有打勾維持最小
+            "📌 持有": st.column_config.CheckboxColumn("📌 持有", width="small"),
             "原始代號": None, 
-            "標的": st.column_config.TextColumn("標的"), # 關鍵 2：全部不設定寬度，讓它自動貼合文字！
-            "現價": st.column_config.NumberColumn("現價", format="$%.2f"),
-            "📈 漲跌": st.column_config.TextColumn("📈 漲跌"), 
-            "成交量(張)": st.column_config.NumberColumn("成交量"),
-            "📊 官方籌碼": st.column_config.TextColumn("📊 籌碼"),
-            "趨勢格局": st.column_config.TextColumn("趨勢"), 
-            "🤖 系統建議": st.column_config.TextColumn("🤖 建議", width="large"), # 系統建議字最多，給它 large 確保有空間舒展
-            "💰 最新配息": st.column_config.TextColumn("💰 配息")  
+            "標的": st.column_config.TextColumn("標的", width="medium"),
+            "現價": st.column_config.NumberColumn("現價", format="$%.2f", width="small"),
+            "📈 漲跌": st.column_config.TextColumn("📈 漲跌", width="medium"), 
+            "成交量(張)": st.column_config.NumberColumn("成交量", width="small"),
+            "📊 官方籌碼": st.column_config.TextColumn("📊 籌碼", width="small"),
+            "趨勢格局": st.column_config.TextColumn("趨勢", width="small"), 
+            "🤖 系統建議": st.column_config.TextColumn("🤖 建議", width="medium"), # 🔥 關鍵 2：降級成 medium，消滅巨大空白！
+            "💰 最新配息": st.column_config.TextColumn("💰 配息", width="medium")  
         }
     )
 
